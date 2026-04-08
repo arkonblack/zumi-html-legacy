@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zumi | Punto de Venta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #F5F5F7; display: flex; height: 100vh; overflow: hidden; color: #1D1D1F; }
+
+        /* ══════════════════════════════
+           SIDEBAR
+        ══════════════════════════════ */
+        #sidebar {
+            background: #FFFFFF;
+            border-right: 1px solid #EBEBEB;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            width: 260px;
+            transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+            z-index: 50;
+        }
+        #sidebar.collapsed { width: 56px; }
+
+        .sidebar-inner { width: 260px; height: 100%; display: flex; flex-direction: column; transition: width 0.3s cubic-bezier(0.4,0,0.2,1); }
+        #sidebar.collapsed .sidebar-inner { width: 56px; }
+
+        /* Sección superior: botones de acción */
+        .s-top { padding: 14px 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+
+        /* Botón de acción genérico */
+        .s-btn {
+            display: flex; align-items: center; gap: 12px;
+            padding: 9px 10px; border-radius: 9px; cursor: pointer;
+            transition: background 0.15s; border: none; background: transparent;
+            font-family: 'Inter', sans-serif; text-align: left; width: 100%;
+            white-space: nowrap;
+        }
+        .s-btn:hover { background: #F5F5F7; }
+        .s-btn.active { background: #F0F0F5; }
+        .s-btn .s-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .s-btn .s-label { font-size: 13px; font-weight: 600; color: #1D1D1F; }
+        .s-btn .s-label.muted { color: #86868B; font-weight: 500; }
+
+        /* Cuando colapsado: centrar ícono y ocultar texto */
+        #sidebar.collapsed .s-btn { justify-content: center; padding: 9px; }
+        #sidebar.collapsed .s-label { display: none; }
+        #sidebar.collapsed .s-divider { display: none; }
+        #sidebar.collapsed .s-group-title { display: none; }
+        #sidebar.collapsed .s-item { display: none; }
+        #sidebar.collapsed .s-footer { display: none; }
+        #sidebar.collapsed .s-scroll { display: none; }
+        #sidebar.collapsed .s-nav { padding: 8px; }
+
+        /* Indicador activo cuando colapsado */
+        #sidebar.collapsed .s-btn.active { background: #F0F0F5; }
+        #sidebar.collapsed .s-btn.active .s-icon svg { stroke: #1D1D1F !important; }
+
+        .s-divider { height: 1px; background: #F0F0F5; margin: 6px 10px; flex-shrink: 0; }
+        .s-nav { padding: 4px 8px 2px; }
+
+        /* Botón toggle sidebar en main */
+        #btn-toggle-main {
+            position: absolute; top: 14px; left: 14px;
+            width: 36px; height: 36px; border-radius: 9px;
+            display: none; align-items: center; justify-content: center;
+            background: transparent; border: none; cursor: pointer;
+            color: #86868B; transition: background 0.15s; z-index: 10;
+        }
+        #btn-toggle-main:hover { background: #EBEBEB; color: #1D1D1F; }
+
+        /* Scroll central */
+        .s-scroll { flex: 1; overflow-y: auto; padding: 0 8px; scrollbar-width: none; }
+        .s-scroll::-webkit-scrollbar { display: none; }
+
+        .s-scroll-header { display: flex; padding: 4px 4px 0; }
+
+        .s-group-title { font-size: 10px; font-weight: 700; color: #A1A1A6; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 6px 5px; }
+
+        .s-item { padding: 7px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; margin-bottom: 1px; }
+        .s-item:hover { background: #F5F5F7; }
+
+        /* Footer del sidebar */
+        .s-footer { padding: 8px 8px 10px; border-top: 1px solid #F0F0F5; }
+        .s-balance { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px 4px; }
+
+        /* ══════════════════════════════
+           MAIN
+        ══════════════════════════════ */
+        main { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: #F5F5F7; min-width: 0; }
+
+        .view { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 28px 20px 20px; overflow-y: auto; }
+        .view.hidden { display: none; }
+
+        /* ══════════════════════════════
+           CALCULADORA
+        ══════════════════════════════ */
+        .calc-card { background: #FFFFFF; border-radius: 26px; box-shadow: 0 2px 24px rgba(0,0,0,0.05); width: 100%; max-width: 400px; padding: 28px; }
+
+        /* Header con selector de modo */
+        .calc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+        .eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: #86868B; margin-bottom: 3px; }
+        .calc-title { font-size: 1.45rem; font-weight: 600; }
+
+        /* Toggle Switch — Precision / Avanzado */
+        .toggle-switch {
+            display: inline-flex;
+            background: #F2F2F7;
+            border-radius: 16px;
+            padding: 3px;
+            position: relative;
+            width: 160px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-labels {
+            display: flex;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .toggle-label {
+            flex: 1;
+            text-align: center;
+            padding: 6px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #86868B;
+            transition: color 0.2s;
+        }
+
+        .toggle-label.active {
+            color: #1D1D1F;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px; left: 3px;
+            width: calc(50% - 3px);
+            height: calc(100% - 6px);
+            background: #FFFFFF;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        .toggle-switch.av-mode .toggle-slider {
+            transform: translateX(calc(100% + 3px));
+        }
+
+        /* Inputs */
+        .field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #86868B; margin-bottom: 6px; margin-left: 2px; }
+        .field-hint { font-size: 11px; color: #A1A1A6; margin-top: -4px; margin-bottom: 14px; margin-left: 3px; }
+
+        .input-wrap { background: #F2F2F7; border-radius: 14px; display: flex; align-items: center; padding: 0 16px; margin-bottom: 10px; border: 2px solid transparent; transition: all 0.2s; position: relative; }
+        .input-wrap:focus-within { background: #FFFFFF; border-color: #ADCFF7; box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+        .cur { font-size: 1.2rem; color: #86868B; font-weight: 500; margin-right: 4px; }
+        .input-wrap input { width: 100%; height: 48px; background: transparent; border: none; outline: none; font-size: 1.2rem; font-weight: 500; color: #1D1D1F; caret-color: #0071E3; font-family: 'Inter', sans-serif; }
+        .rt-total { position: absolute; right: 14px; top: 9px; font-size: 0.6rem; color: #A1A1A6; font-weight: 600; }
+
+        .bills-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+        .bill-btn { background: #F2F2F7; border-radius: 9px; padding: 10px 5px; font-size: 12px; font-weight: 700; color: #1D1D1F; transition: all 0.15s; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
+        .bill-btn:active { background: #E5E5EA; transform: scale(0.95); }
+
+        .vuelto-box { text-align: center; padding: 18px 10px; background: #F9F9FB; border-radius: 18px; margin: 14px 0; border: 1px solid #F0F0F5; }
+        .vuelto-label { font-size: 10px; font-weight: 600; color: #A1A1A6; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 6px; }
+        #resultado { font-size: 2.4rem; font-weight: 600; letter-spacing: -1.5px; transition: color 0.2s, font-size 0.2s; }
+        #desglose { margin-top: 7px; }
+        .chip { background: #E8E8ED; color: #424245; padding: 3px 9px; border-radius: 7px; font-size: 11px; font-weight: 600; display: inline-block; margin: 2px; }
+
+        .btn-p { width: 100%; background: #0071E3; color: #FFF; border: none; border-radius: 14px; padding: 14px; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; box-shadow: 0 4px 14px rgba(0,113,227,0.22); }
+        .btn-p:hover { background: #0077ED; }
+        .btn-p:active { transform: scale(0.98); }
+        .btn-p:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+        .btn-s { background: #F2F2F7; color: #1D1D1F; border: none; border-radius: 14px; padding: 14px; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; }
+        .btn-s:hover { background: #E5E5EA; }
+
+        .fade-out { opacity: 0; transition: opacity 0.15s ease-out !important; pointer-events: none; }
+
+        /* ══════════════════════════════
+           NOTAS
+        ══════════════════════════════ */
+        .notas-wrap { width: 100%; max-width: 480px; }
+        .notas-header { margin-bottom: 18px; }
+
+        /* Compositor */
+        .composer {
+            background: #FFFFFF; border-radius: 20px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.05); padding: 18px; margin-bottom: 16px;
+        }
+        .composer-title { font-size: 10px; font-weight: 700; color: #86868B; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+        .nota-textarea {
+            width: 100%; background: #F5F5F7; border-radius: 12px; border: 2px solid transparent;
+            padding: 13px 14px; font-size: 14px; font-family: 'Inter', sans-serif;
+            color: #1D1D1F; resize: none; outline: none; transition: all 0.2s; min-height: 78px;
+            line-height: 1.5;
+        }
+        .nota-textarea:focus { background: #FFFFFF; border-color: #ADCFF7; box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
+        .nota-textarea::placeholder { color: #B0B0B8; }
+
+        .composer-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+        .etq-input {
+            background: #F5F5F7; border: 1.5px solid transparent; border-radius: 10px;
+            padding: 7px 12px; font-size: 12px; font-weight: 500; font-family: 'Inter', sans-serif;
+            color: #1D1D1F; outline: none; width: 148px; transition: all 0.2s;
+        }
+        .etq-input:focus { background: #FFFFFF; border-color: #ADCFF7; }
+        .etq-input::placeholder { color: #A1A1A6; }
+
+        .etq-sug-wrap { display: flex; gap: 5px; flex-wrap: wrap; flex: 1; }
+        .etq-sug-btn { background: #F2F2F7; border: none; border-radius: 8px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: #86868B; cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+        .etq-sug-btn:hover { background: #E5E5EA; color: #1D1D1F; }
+        .etq-sug-btn.sel { background: #0071E3; color: #FFF; }
+
+        .guardar-btn { background: #1D1D1F; color: #FFF; border: none; border-radius: 10px; padding: 8px 18px; font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; margin-left: auto; }
+        .guardar-btn:hover { background: #2D2D2F; }
+        .guardar-btn:active { transform: scale(0.97); }
+
+        /* Filtros */
+        .filtros { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+        .f-chip { background: #FFFFFF; border: 1.5px solid #E5E5EA; border-radius: 20px; padding: 5px 13px; font-size: 12px; font-weight: 600; color: #86868B; cursor: pointer; transition: all 0.15s; }
+        .f-chip:hover { border-color: #C7C7CC; color: #1D1D1F; }
+        .f-chip.active { background: #1D1D1F; border-color: #1D1D1F; color: #FFF; }
+
+        /* Secciones de notas */
+        .nota-sec { background: #FFFFFF; border-radius: 18px; box-shadow: 0 2px 20px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 10px; }
+        .nota-sec-hdr { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #F2F2F7; }
+        .nota-sec-title { font-size: 10px; font-weight: 700; color: #86868B; text-transform: uppercase; letter-spacing: 0.06em; }
+
+        .nota-item { display: flex; align-items: flex-start; gap: 11px; padding: 13px 16px; border-bottom: 1px solid #F5F5F7; transition: background 0.12s; }
+        .nota-item:last-child { border-bottom: none; }
+        .nota-item:hover { background: #FDFDFD; }
+        .nota-item.done .nota-txt { color: #A1A1A6; text-decoration: line-through; }
+
+        .nota-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #D1D1D6; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-top: 2px; transition: all 0.2s; }
+        .nota-circle:hover { border-color: #0071E3; }
+        .nota-circle.checked { background: #34C759; border-color: #34C759; }
+        .nota-circle.checked::after { content: '✓'; color: white; font-size: 10px; font-weight: 800; }
+
+        .nota-body { flex: 1; min-width: 0; }
+        .nota-txt { font-size: 14px; color: #1D1D1F; line-height: 1.45; transition: color 0.2s; word-break: break-word; }
+        .nota-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+        .nota-time { font-size: 10px; color: #A1A1A6; font-weight: 500; }
+        .nota-etq { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: #F2F2F7; color: #86868B; }
+
+        .nota-del { font-size: 12px; color: #D1D1D6; cursor: pointer; padding: 2px 5px; border-radius: 5px; transition: all 0.15s; flex-shrink: 0; user-select: none; }
+        .nota-del:hover { color: #FF3B30; background: #FFF0EE; }
+
+        .empty-msg { text-align: center; padding: 48px 20px; color: #A1A1A6; font-size: 13px; line-height: 1.7; }
+
+        /* ══════════════════════════════
+           MODAL PARA CREAR NOTA
+        ══════════════════════════════ */
+        .nota-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .nota-modal.hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .nota-modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(2px);
+            z-index: -1;
+        }
+
+        .nota-modal-box {
+            background: #FFFFFF;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.16);
+            overflow: hidden;
+            animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+        .modal-hdr {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        .modal-hdr h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin: 0;
+            color: #1D1D1F;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            color: #A1A1A6;
+            cursor: pointer;
+            width: 32px; height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.15s;
+        }
+        .modal-close:hover {
+            background: #F5F5F7;
+            color: #1D1D1F;
+        }
+
+        .modal-body {
+            padding: 18px 20px;
+        }
+        .modal-textarea {
+            width: 100%;
+            background: #F5F5F7;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            padding: 13px 14px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: #1D1D1F;
+            resize: none;
+            outline: none;
+            transition: all 0.2s;
+            min-height: 100px;
+        }
+        .modal-textarea:focus {
+            background: #FFFFFF;
+            border-color: #ADCFF7;
+            box-shadow: 0 0 0 4px rgba(0,113,227,0.08);
+        }
+        .modal-textarea::placeholder { color: #B0B0B8; }
+
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .modal-etq {
+            background: #F5F5F7;
+            border: 1.5px solid transparent;
+            border-radius: 10px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            color: #1D1D1F;
+            outline: none;
+            flex: 1;
+            min-width: 140px;
+            transition: all 0.2s;
+        }
+        .modal-etq:focus { background: #FFFFFF; border-color: #ADCFF7; }
+        .modal-etq::placeholder { color: #A1A1A6; }
+
+        .modal-save {
+            background: #0071E3;
+            color: #FFF;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .modal-save:hover { background: #0077ED; }
+        .modal-save:active { transform: scale(0.97); }
+    </style>
+</head>
+<body>
+
+<!-- ════════════════════════
+     SIDEBAR
+════════════════════════ -->
+<aside id="sidebar">
+    <div class="sidebar-inner">
+
+        <!-- Acciones superiores -->
+        <div class="s-top">
+            <!-- Nueva operación -->
+            <button class="s-btn" onclick="expandirYNavegar('ventas'); limpiar();" title="Nueva Operación">
+                <span class="s-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1F" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </span>
+                <span class="s-label">Nueva Operación</span>
+            </button>
+        </div>
+
+        <div class="s-divider"></div>
+
+        <!-- Navegación: Ventas / Notas -->
+        <div class="s-nav">
+            <button class="s-btn active" id="snav-ventas" onclick="expandirYNavegar('ventas')" title="Ventas">
+                <span class="s-icon">
+                    <svg id="ico-ventas" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D1D1F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                </span>
+                <span class="s-label">Ventas</span>
+            </button>
+            <button class="s-btn" id="snav-notas" onclick="expandirYNavegar('notas')" title="Notas">
+                <span class="s-icon">
+                    <svg id="ico-notas" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#86868B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </span>
+                <span class="s-label">Notas</span>
+            </button>
+        </div>
+
+        <div class="s-divider"></div>
+
+        <!-- Historial scrollable -->
+        <div class="s-scroll" id="s-content"></div>
+
+        <!-- Footer balance -->
+        <div class="s-footer">
+            <div class="s-balance">
+                <span style="font-size:11px;color:#86868B;font-weight:600;">Balance hoy</span>
+                <span id="balance-hoy" style="font-size:13px;font-weight:700;">$0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+                <button onclick="borrarHistorial()" style="text-align:left;padding:5px 6px;font-size:11px;color:#FF3B30;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='#FFF0EE'" onmouseout="this.style.background='transparent'">
+                    Limpiar historial
+                </button>
+                <button onclick="toggleSidebar()" title="Ocultar panel" style="padding:5px 6px;font-size:11px;color:#A1A1A6;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='#F5F5F7'" onmouseout="this.style.background='transparent'">
+                    ← Ocultar
+                </button>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- ════════════════════════
+     MAIN
+════════════════════════ -->
+<main>
+
+    <!-- Botón toggle cuando el sidebar está colapsado -->
+    <button id="btn-toggle-main" onclick="toggleSidebar()" title="Mostrar panel">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2.5"/><line x1="15" y1="3" x2="15" y2="21"/>
+        </svg>
+    </button>
+
+    <!-- ── Vista Calculadora ── -->
+    <div class="view" id="view-calc">
+        <div class="calc-card">
+
+            <!-- Header -->
+            <div class="calc-header">
+                <div>
+                    <p class="eyebrow">Punto de Venta</p>
+                    <p class="calc-title" id="modo-titulo">Precision</p>
+                </div>
+                <!-- Toggle Switch: Precision / Avanzado -->
+                <div class="toggle-switch" id="toggle-switch" onclick="toggleModo()">
+                    <div class="toggle-labels">
+                        <div class="toggle-label active" id="label-pre">Precision</div>
+                        <div class="toggle-label" id="label-av">Avanzado</div>
+                    </div>
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+
+            <!-- Total -->
+            <p class="field-label">Total Factura</p>
+            <div class="input-wrap">
+                <span class="cur">$</span>
+                <input type="text" id="total" placeholder="0" oninput="processInput(this,'rt-total')">
+                <span id="rt-total" class="rt-total">$0</span>
+            </div>
+            <p class="field-hint" id="hint-suma">Suma con &nbsp;+&nbsp; (ej: 10.000+250)</p>
+
+            <!-- Avanzado: billetes rápidos -->
+            <div id="blq-av" style="display:none;">
+                <p class="field-label">Dinero Recibido</p>
+                <div class="bills-grid">
+                    <button class="bill-btn" onclick="addCash(2000)">$2k</button>
+                    <button class="bill-btn" onclick="addCash(5000)">$5k</button>
+                    <button class="bill-btn" onclick="addCash(10000)">$10k</button>
+                    <button class="bill-btn" onclick="addCash(20000)">$20k</button>
+                    <button class="bill-btn" onclick="addCash(50000)">$50k</button>
+                    <button class="bill-btn" onclick="addCash(100000)">$100k</button>
+                </div>
+            </div>
+
+            <!-- Recibido -->
+            <p class="field-label" id="lbl-rec">Dinero Recibido</p>
+            <div class="input-wrap">
+                <span class="cur">$</span>
+                <input type="text" id="recibido" placeholder="0" oninput="processInput(this,'rt-rec')" onkeydown="if(event.key==='Enter'){event.preventDefault();calcular();}">
+                <span id="rt-rec" class="rt-total">$0</span>
+            </div>
+
+            <!-- Vuelto -->
+            <div class="vuelto-box">
+                <p class="vuelto-label">Vuelto a entregar</p>
+                <div id="resultado">$0</div>
+                <div id="desglose"></div>
+            </div>
+
+            <!-- Botones Precision: guarda automáticamente si hay operación válida -->
+            <div id="btns-pre">
+                <button class="btn-p" id="btnPre" onclick="guardarYLimpiar()" disabled>Registrar y Nueva Operación</button>
+            </div>
+
+            <!-- Botones Avanzado -->
+            <div id="btns-av" style="display:none;">
+                <div style="display:flex;gap:8px;">
+                    <button class="btn-s" style="flex:1;" onclick="limpiar()">Cancelar</button>
+                    <button class="btn-p" style="flex:2;" id="btnReg" onclick="registrar()">Registrar Venta</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── Vista Notas ── -->
+    <div class="view hidden" id="view-notas">
+        <div class="notas-wrap">
+            <div class="notas-header">
+                <p class="eyebrow" style="margin-bottom:3px;">Panel de notas</p>
+                <p style="font-size:1.45rem;font-weight:600;">Notas</p>
+            </div>
+
+            <!-- Botón para abrir modal -->
+            <button class="btn-p" onclick="openNotaModal()" style="width:100%;margin-bottom:16px;">+ Nueva Nota</button>
+
+            <!-- Filtros de etiquetas -->
+            <div class="filtros" id="filtros-row"></div>
+
+            <!-- Lista de notas -->
+            <div id="notas-list"></div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ════════════════════════
+     MODAL CREAR NOTA
+════════════════════════ -->
+<div class="nota-modal hidden" id="nota-modal">
+    <div class="nota-modal-overlay" onclick="closeNotaModal()"></div>
+    <div class="nota-modal-box">
+        <div class="modal-hdr">
+            <h2>Nueva Nota</h2>
+            <button class="modal-close" onclick="closeNotaModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <textarea class="modal-textarea" id="modal-nota-txt" placeholder="¿Qué necesitas recordar?"></textarea>
+            <div class="modal-footer">
+                <input type="text" class="modal-etq" id="modal-etq-input" placeholder="+ Etiqueta (opcional)">
+                <button class="modal-save" onclick="guardarNotaDesdeModal()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const fmt = n => new Intl.NumberFormat('de-DE').format(n);
+
+    let ventas      = JSON.parse(localStorage.getItem('historial_avanzado')) || [];
+    let notas       = JSON.parse(localStorage.getItem('notas_db'))           || [];
+    let modo        = localStorage.getItem('modo_app') || 'precision';
+    let snavTab     = 'ventas';
+    let sidebarOpen = localStorage.getItem('sidebar_open') !== 'false';
+    let filtroEtq   = null;
+
+    // ═══════════════════════════
+    // SIDEBAR
+    // ═══════════════════════════
+
+    function toggleSidebar() {
+        sidebarOpen = !sidebarOpen;
+        localStorage.setItem('sidebar_open', sidebarOpen);
+        document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+        document.getElementById('btn-toggle-main').style.display = sidebarOpen ? 'none' : 'flex';
+    }
+
+    // Expande el sidebar si está colapsado y luego navega
+    function expandirYNavegar(tab) {
+        if (!sidebarOpen) {
+            sidebarOpen = true;
+            localStorage.setItem('sidebar_open', true);
+            document.getElementById('sidebar').classList.remove('collapsed');
+            document.getElementById('btn-toggle-main').style.display = 'none';
+        }
+        setSnav(tab);
+    }
+
+    function setSnav(tab) {
+        snavTab = tab;
+        const esVentas = tab === 'ventas';
+        document.getElementById('snav-ventas').classList.toggle('active', esVentas);
+        document.getElementById('snav-notas').classList.toggle('active', !esVentas);
+
+        // Actualizar color de íconos
+        document.getElementById('ico-ventas').setAttribute('stroke', esVentas ? '#1D1D1F' : '#86868B');
+        document.getElementById('ico-notas').setAttribute('stroke', !esVentas ? '#1D1D1F' : '#86868B');
+
+        if (esVentas) { renderSidebarVentas(); irACalc(); }
+        else          { renderSidebarNotas();  irANotas(); }
+    }
+
+    function renderSidebarVentas() {
+        const el    = document.getElementById('s-content');
+        const balEl = document.getElementById('balance-hoy');
+        el.innerHTML = '';
+
+        const hoy    = new Date().toLocaleDateString('es-CO');
+        const grupos = {};
+        ventas.forEach(v => {
+            const f = v.fecha || hoy;
+            grupos[f] = grupos[f] || [];
+            grupos[f].push(v);
+        });
+
+        let balHoy = 0;
+        Object.entries(grupos).forEach(([fecha, ops]) => {
+            if (fecha === hoy) ops.forEach(o => balHoy += o.total);
+
+            const g = document.createElement('div');
+            const t = document.createElement('div');
+            t.className = 's-group-title';
+            t.innerText = fecha === hoy ? 'Hoy' : fecha;
+            g.appendChild(t);
+
+            ops.forEach(op => {
+                const item = document.createElement('div');
+                item.className = 's-item';
+                item.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:13px;font-weight:600;">$${fmt(op.total)}</span>
+                        <span style="font-size:11px;color:#A1A1A6;">${op.hora}</span>
+                    </div>
+                    <div style="font-size:11px;color:#A1A1A6;margin-top:1px;">Vuelto $${fmt(op.vuelto)}</div>`;
+                g.appendChild(item);
+            });
+            el.appendChild(g);
+        });
+
+        if (!Object.keys(grupos).length) {
+            el.innerHTML = '<div style="font-size:12px;color:#A1A1A6;text-align:center;padding:28px 8px;">Sin ventas registradas</div>';
+        }
+        balEl.innerText = '$' + fmt(balHoy);
+    }
+
+    function renderSidebarNotas() {
+        const el = document.getElementById('s-content');
+        el.innerHTML = '';
+        const pend = notas.filter(n => n.estado === 'pendiente');
+
+        if (!pend.length) {
+            el.innerHTML = '<div style="font-size:12px;color:#A1A1A6;text-align:center;padding:28px 8px;">Sin notas pendientes</div>';
+            return;
+        }
+        const t = document.createElement('div');
+        t.className = 's-group-title';
+        t.innerText = 'Pendientes';
+        el.appendChild(t);
+
+        pend.forEach(n => {
+            const item = document.createElement('div');
+            item.className = 's-item';
+            item.onclick = irANotas;
+            item.innerHTML = `
+                <div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.texto}</div>
+                ${n.etiqueta ? `<div style="font-size:10px;color:#86868B;margin-top:1px;">${n.etiqueta}</div>` : ''}`;
+            el.appendChild(item);
+        });
+    }
+
+    // ═══════════════════════════
+    // NAVEGACIÓN
+    // ═══════════════════════════
+
+    function irACalc() {
+        document.getElementById('view-calc').classList.remove('hidden');
+        document.getElementById('view-notas').classList.add('hidden');
+        setTimeout(() => document.getElementById('total').focus(), 50);
+    }
+
+    function irANotas() {
+        document.getElementById('view-calc').classList.add('hidden');
+        document.getElementById('view-notas').classList.remove('hidden');
+        renderNotas();
+    }
+
+    // ═══════════════════════════
+    // MODO TOGGLE
+    // ═══════════════════════════
+
+    function toggleModo() {
+        setModo(modo === 'precision' ? 'avanzado' : 'precision');
+    }
+
+    // ═══════════════════════════
+    // CALCULADORA
+    // ═══════════════════════════
+
+    function setModo(m) {
+        modo = m;
+        localStorage.setItem('modo_app', m);
+        const av = m === 'avanzado';
+
+        document.getElementById('modo-titulo').innerText = av ? 'Avanzado' : 'Precision';
+
+        // Toggle switch visual
+        document.getElementById('toggle-switch').classList.toggle('av-mode', av);
+        document.getElementById('label-pre').classList.toggle('active', !av);
+        document.getElementById('label-av').classList.toggle('active', av);
+
+        const hint = document.getElementById('hint-suma');
+        const lbl  = document.getElementById('lbl-rec');
+        const bpre = document.getElementById('btns-pre');
+        const blq  = document.getElementById('blq-av');
+        const bav  = document.getElementById('btns-av');
+
+        if (av) {
+            // Ocultar elementos Precision con fade
+            [hint, lbl, bpre].forEach(e => e.classList.add('fade-out'));
+            setTimeout(() => {
+                hint.style.display = lbl.style.display = bpre.style.display = 'none';
+                [hint, lbl, bpre].forEach(e => e.classList.remove('fade-out'));
+            }, 150);
+            // Mostrar elementos Avanzado
+            blq.style.display = 'block';
+            bav.style.display = 'block';
+        } else {
+            // Ocultar elementos Avanzado con fade
+            [blq, bav].forEach(e => e.classList.add('fade-out'));
+            setTimeout(() => {
+                blq.style.display = bav.style.display = 'none';
+                [blq, bav].forEach(e => e.classList.remove('fade-out'));
+            }, 150);
+            // Mostrar elementos Precision
+            hint.style.display = lbl.style.display = bpre.style.display = 'block';
+        }
+
+        limpiar();
+    }
+
+    function addCash(amt) {
+        const inp = document.getElementById('recibido');
+        const curr = inp.value.trim();
+        inp.value = curr ? curr + '+' + fmt(amt) : fmt(amt);
+        processInput(inp, 'rt-rec');
+    }
+
+    function processInput(el, rtId) {
+        let total = 0;
+        el.value = el.value.replace(/[^0-9+]/g, '').split('+').map(p => {
+            if (!p) return '';
+            const n = parseInt(p);
+            total += n || 0;
+            return fmt(n);
+        }).join('+');
+        document.getElementById(rtId).innerText = '$' + fmt(total);
+        calcular();
+    }
+
+    function getSum(el) {
+        return el.value.split('+').map(n => parseInt(n.replace(/\./g,'')) || 0).reduce((a,b) => a+b, 0);
+    }
+
+    function calcular() {
+        const t   = getSum(document.getElementById('total'));
+        const r   = getSum(document.getElementById('recibido'));
+        const res = document.getElementById('resultado');
+        const des = document.getElementById('desglose');
+        des.innerHTML = '';
+
+        if (modo === 'avanzado') {
+            document.getElementById('btnReg').disabled = (t === 0 || r < t);
+        } else {
+            document.getElementById('btnPre').disabled = (t === 0);
+        }
+
+        if (r === 0) {
+            res.innerText = '$0'; res.style.color = '#1D1D1F'; res.style.fontSize = '2.4rem';
+        } else if (r < t) {
+            res.innerText = 'Faltan $' + fmt(t - r);
+            res.style.color = '#FF3B30'; res.style.fontSize = '1.7rem';
+        } else {
+            let v = r - t;
+            res.innerText = '$' + fmt(v);
+            res.style.color = '#1D1D1F'; res.style.fontSize = '2.4rem';
+            if (modo === 'avanzado') {
+                [100000,50000,20000,10000,5000,2000,1000,500,200,100].forEach(d => {
+                    const c = Math.floor(v/d);
+                    if (c > 0) {
+                        des.innerHTML += `<span class="chip">${c}x${d>=1000?(d/1000)+'k':d}</span>`;
+                        v %= d;
+                    }
+                });
+            }
+        }
+    }
+
+    // Precision: guarda automáticamente si hay operación válida, luego limpia
+    function guardarYLimpiar() {
+        const t = getSum(document.getElementById('total'));
+        const r = getSum(document.getElementById('recibido'));
+        if (t > 0 && r >= t) _guardar(t, r);
+        limpiar();
+    }
+
+    // Avanzado: registrar manualmente
+    function registrar() {
+        const t = getSum(document.getElementById('total'));
+        const r = getSum(document.getElementById('recibido'));
+        _guardar(t, r);
+        limpiar();
+    }
+
+    function _guardar(total, recibido) {
+        ventas.unshift({
+            total, recibido,
+            vuelto: recibido - total,
+            fecha: new Date().toLocaleDateString('es-CO'),
+            hora:  new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
+        });
+        localStorage.setItem('historial_avanzado', JSON.stringify(ventas));
+        renderSidebarVentas();
+    }
+
+    function borrarHistorial() {
+        if (confirm('¿Borrar todo el historial de ventas?')) {
+            ventas = [];
+            localStorage.removeItem('historial_avanzado');
+            renderSidebarVentas();
+        }
+    }
+
+    function limpiar() {
+        document.getElementById('total').value    = '';
+        document.getElementById('recibido').value = '';
+        document.getElementById('rt-total').innerText = '$0';
+        document.getElementById('rt-rec').innerText   = '$0';
+        calcular();
+        document.getElementById('total').focus();
+    }
+
+    // ═══════════════════════════
+    // NOTAS
+    // ═══════════════════════════
+
+    function getEtiquetas() {
+        return [...new Set(notas.map(n => n.etiqueta).filter(Boolean))];
+    }
+
+    function toggleNota(id) {
+        const n = notas.find(x => x.id === id);
+        if (!n) return;
+        n.estado = n.estado === 'pendiente' ? 'resuelto' : 'pendiente';
+        localStorage.setItem('notas_db', JSON.stringify(notas));
+        renderNotas();
+        if (snavTab === 'notas') renderSidebarNotas();
+    }
+
+    function eliminarNota(id) {
+        notas = notas.filter(x => x.id !== id);
+        localStorage.setItem('notas_db', JSON.stringify(notas));
+        renderNotas();
+        if (snavTab === 'notas') renderSidebarNotas();
+    }
+
+    function setFiltro(etq) {
+        filtroEtq = filtroEtq === etq ? null : etq;
+        renderNotas();
+    }
+
+    // ═══════════════════════════
+    // MODAL NOTAS
+    // ═══════════════════════════
+
+    function openNotaModal() {
+        document.getElementById('nota-modal').classList.remove('hidden');
+        document.getElementById('modal-nota-txt').focus();
+    }
+
+    function closeNotaModal() {
+        document.getElementById('nota-modal').classList.add('hidden');
+        document.getElementById('modal-nota-txt').value = '';
+        document.getElementById('modal-etq-input').value = '';
+    }
+
+    function guardarNotaDesdeModal() {
+        const txt = document.getElementById('modal-nota-txt').value.trim();
+        const etq = document.getElementById('modal-etq-input').value.trim();
+
+        if (!txt) {
+            alert('Escribe algo primero');
+            return;
+        }
+
+        const ahora = new Date();
+        const nota = {
+            id: Date.now(),
+            texto: txt,
+            etiqueta: etq || null,
+            estado: 'pendiente',
+            hora: ahora.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+            fecha: ahora.toLocaleDateString('es-CO')
+        };
+
+        notas.unshift(nota);
+        localStorage.setItem('notas_db', JSON.stringify(notas));
+        closeNotaModal();
+        renderNotas();
+        if (snavTab === 'notas') renderSidebarNotas();
+    }
+
+
+    function renderNotas() {
+
+        // Filtros de etiquetas
+        const filtrosRow = document.getElementById('filtros-row');
+        filtrosRow.innerHTML = '';
+        const etqs = getEtiquetas();
+        if (etqs.length > 0) {
+            const all = document.createElement('button');
+            all.className = 'f-chip' + (filtroEtq === null ? ' active' : '');
+            all.textContent = 'Todas';
+            all.onclick = () => setFiltro(null);
+            filtrosRow.appendChild(all);
+
+            etqs.forEach(e => {
+                const chip = document.createElement('button');
+                chip.className = 'f-chip' + (filtroEtq === e ? ' active' : '');
+                chip.textContent = e;
+                chip.onclick = () => setFiltro(e);
+                filtrosRow.appendChild(chip);
+            });
+        }
+
+        // Lista
+        const list = document.getElementById('notas-list');
+        list.innerHTML = '';
+
+        const filtradas  = filtroEtq ? notas.filter(n => n.etiqueta === filtroEtq) : notas;
+        const pendientes = filtradas.filter(n => n.estado === 'pendiente');
+        const resueltas  = filtradas.filter(n => n.estado === 'resuelto');
+
+        if (!pendientes.length && !resueltas.length) {
+            list.innerHTML = `<div class="empty-msg">Sin notas aún.<br>Usa el botón <strong>+ Nueva Nota</strong> para agregar una.</div>`;
+            return;
+        }
+
+        function buildSec(titulo, items) {
+            if (!items.length) return;
+            const sec = document.createElement('div');
+            sec.className = 'nota-sec';
+            sec.innerHTML = `
+                <div class="nota-sec-hdr">
+                    <span class="nota-sec-title">${titulo}</span>
+                    <span style="font-size:11px;color:#A1A1A6;font-weight:600;">${items.length}</span>
+                </div>`;
+            items.forEach(n => {
+                const el = document.createElement('div');
+                el.className = 'nota-item' + (n.estado === 'resuelto' ? ' done' : '');
+                el.innerHTML = `
+                    <div class="nota-circle ${n.estado==='resuelto'?'checked':''}" onclick="toggleNota(${n.id})"></div>
+                    <div class="nota-body">
+                        <div class="nota-txt">${n.texto}</div>
+                        <div class="nota-meta">
+                            <span class="nota-time">${n.hora} · ${n.fecha}</span>
+                            ${n.etiqueta ? `<span class="nota-etq">${n.etiqueta}</span>` : ''}
+                        </div>
+                    </div>
+                    <span class="nota-del" onclick="eliminarNota(${n.id})" title="Eliminar">✕</span>`;
+                sec.appendChild(el);
+            });
+            list.appendChild(sec);
+        }
+
+        buildSec('Pendientes', pendientes);
+        buildSec('Resueltas',  resueltas);
+    }
+
+    // ═══════════════════════════
+    // INIT
+    // ═══════════════════════════
+
+    window.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        if (!document.getElementById('nota-modal').classList.contains('hidden')) {
+            closeNotaModal();
+        } else {
+            irACalc(); limpiar();
+        }
+    });
+
+    // Restaurar estado del sidebar
+    const savedSidebar = localStorage.getItem('sidebar_open');
+    if (savedSidebar === 'false') {
+        sidebarOpen = false;
+        document.getElementById('sidebar').classList.add('collapsed');
+        document.getElementById('btn-toggle-main').style.display = 'flex';
+    }
+
+    setModo(modo);
+    renderSidebarVentas();
+</script>
+</body>
+</html>
